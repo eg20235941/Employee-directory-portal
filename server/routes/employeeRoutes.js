@@ -24,8 +24,25 @@ router.get('/', async (req, res) => {
         const employees = await Employee.find();
         res.status(200).json(employees);
     } catch (error) {
+        console.error("CRITICAL BACKEND CRASH:", error);
         res.status(500).json({ message: error.message });
     }
 });
 
 module.exports = router;
+// DELETE an employee by ID
+router.delete('/:id', async (req, res) => {
+    try {
+        // req.params.id grabs the '6ac38ad...' string from the URL
+        const deletedEmployee = await Employee.findByIdAndDelete(req.params.id);
+        
+        if (!deletedEmployee) {
+            return res.status(404).json({ message: 'Employee not found in database' });
+        }
+        
+        res.status(200).json({ message: 'Employee successfully deleted' });
+    } catch (error) {
+        console.error("Delete Error:", error);
+        res.status(500).json({ message: 'Server error during deletion' });
+    }
+});

@@ -1,15 +1,37 @@
-import { useState } from 'react'
-import addEmployee from './functions/addEmployee'
+import { useState, useEffect } from 'react';import addEmployee from './functions/addEmployee'
 import removeEmployee from './functions/deleteEmployee'
 import filterEmployees from './functions/filterEmployees'
 import getDepartments from './functions/getDepartments'
 import getInitials from './functions/getInitials'
 import updateEmployee from './functions/updateEmployee'
-import starterEmployees from './data/starterEmployees'
 import './App.css'
 
 function App() {
-  const [employees, setEmployees] = useState(starterEmployees)
+ const [employees, setEmployees] = useState([]);
+
+ useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        // Send a GET request to your Node.js backend
+        const response = await fetch('http://localhost:5000/api/employees');
+        const realData = await response.json();
+        
+        // Update the React UI with the database records
+        setEmployees(realData); 
+        //  NEW: Only update the screen if the backend sent an Array!
+        if (Array.isArray(realData)) {
+            setEmployees(realData);
+        } else {
+            console.error("Backend sent an error instead of an array:", realData);
+            setEmployees([]); // Provide an empty array so the screen doesn't crash
+        }
+      } catch (error) {
+        console.error("Error fetching data from backend:", error);
+      }
+    };
+
+    fetchEmployees();
+  }, []);
   const [search, setSearch] = useState('')
   const [department, setDepartment] = useState('All departments')
   const [notice, setNotice] = useState('')
@@ -23,15 +45,21 @@ function App() {
     setModal({ type: 'details', employee })
   }
 
-  function saveEmployee(event) {
+async function saveEmployee(event) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     const values = Object.fromEntries(form.entries())
+    
     if (modal.type === 'add') {
-      setEmployees((current) => addEmployee(current, values))
+      const updatedList = await addEmployee(employees, values);
+      setEmployees(updatedList);
       setNotice(`${values.name} was added to the directory.`)
     } else {
-      setEmployees((current) => updateEmployee(current, modal.employee.id, values))
+      // FIX: Use ._id for MongoDB (with a fallback to .id just in case)
+      const targetId = modal.employee._id || modal.employee.id;
+      const updatedList = await updateEmployee(employees, targetId, values);
+      
+      setEmployees(updatedList);
       setNotice(`${values.name}'s profile was updated.`)
     }
     setModal(null)
@@ -39,13 +67,19 @@ function App() {
     setDepartment('All departments')
   }
 
-  function deleteEmployee() {
+  async function deleteEmployee() {
     if (!modal?.employee) return
-    setEmployees((current) => removeEmployee(current, modal.employee.id))
+    
+    // FIX: Use ._id for MongoDB
+    const targetId = modal.employee._id || modal.employee.id;
+    const updatedList = await removeEmployee(employees, targetId);
+    
+    setEmployees(updatedList);
     setNotice(`${modal.employee.name} was removed from the directory.`)
     setModal(null)
   }
 
+ 
   if (!isLoggedIn) {
     return (
       <main className="login-screen">
@@ -132,7 +166,7 @@ function App() {
             {notice && <div className="notice" role="status"><span>✓</span>{notice}<button onClick={() => setNotice('')} aria-label="Dismiss notification">×</button></div>}
 
             <div className="employee-grid">
-              {visibleEmployees.map((employee) => <article key={employee.id} className="employee-card">
+              {visibleEmployees.map((employee) => <article key={employee._id || employee.id} className="employee-card">
                 <button className="card-profile-button" onClick={() => selectEmployee(employee)} aria-label={`View ${employee.name}'s details`}>
                   <div className="card-top"><div className={`person-avatar ${employee.color}`}>{getInitials(employee.name)}</div><span className="view-profile">View profile ↗</span></div>
                   <div className="person-info"><h3>{employee.name}</h3><p>{employee.role}</p></div>

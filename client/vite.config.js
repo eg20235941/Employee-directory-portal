@@ -1,7 +1,11 @@
-import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    host: true, // This is the magic line that exposes Vite to Docker
+    port: 5173,
+    strictPort: true, // Prevents Vite from quietly switching to port 5174
+  }
 })

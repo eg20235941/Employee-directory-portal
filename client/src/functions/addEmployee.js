@@ -1,11 +1,25 @@
-function addEmployee(employees, values) {
-  const employee = {
-    ...values,
-    id: `EMP-${Date.now().toString().slice(-4)}`,
-    color: ['mint', 'peach', 'lilac', 'butter', 'blue', 'rose'][employees.length % 6],
-  }
+const addEmployee = async (employees, values) => {
+    try {
+        const response = await fetch('http://localhost:5000/api/employees', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(values) 
+        });
 
-  return [employee, ...employees]
+        if (response.ok) {
+            const savedEmployee = await response.json();
+            return [savedEmployee, ...employees];
+        } else {
+            console.error("Server returned an error");
+            return employees;
+        }
+    } catch (error) {
+        console.error("Failed to connect to backend:", error);
+        return employees;
+    }
 }
 
-export default addEmployee
+// THIS IS THE LINE THE BROWSER WAS LOOKING FOR
+export default addEmployee;
